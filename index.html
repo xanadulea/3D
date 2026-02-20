@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>My 3D Website</title>
+    <title>SCANNER COMMAND CENTER</title>
     <style>
         body {
             margin: 0;
             overflow: hidden;
-            font-family: Arial, sans-serif;
+            font-family: 'Arial Black', sans-serif;
         }
         
         #info {
@@ -17,44 +17,80 @@
             color: white;
             text-align: center;
             z-index: 10;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            text-shadow: 0 0 20px cyan, 0 0 40px blue;
+            background: rgba(0,0,0,0.3);
+            padding: 30px 50px;
+            border-radius: 20px;
+            border: 2px solid cyan;
+            backdrop-filter: blur(5px);
+            animation: glow 2s infinite;
+        }
+        
+        @keyframes glow {
+            0% { box-shadow: 0 0 20px cyan; }
+            50% { box-shadow: 0 0 50px cyan, 0 0 100px blue; }
+            100% { box-shadow: 0 0 20px cyan; }
         }
         
         h1 {
             font-size: 4em;
             margin-bottom: 20px;
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            background: linear-gradient(45deg, cyan, magenta);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            letter-spacing: 5px;
         }
         
         p {
             font-size: 1.5em;
             margin-bottom: 30px;
+            color: cyan;
         }
         
         button {
             padding: 15px 40px;
             font-size: 1.2em;
-            background: #ff6b6b;
-            color: white;
-            border: none;
+            background: transparent;
+            color: cyan;
+            border: 2px solid cyan;
             border-radius: 50px;
             cursor: pointer;
-            transition: transform 0.3s, box-shadow 0.3s;
+            transition: all 0.3s;
+            font-weight: bold;
+            letter-spacing: 2px;
         }
         
         button:hover {
+            background: cyan;
+            color: black;
             transform: scale(1.1);
-            box-shadow: 0 10px 20px rgba(255,107,107,0.4);
+            box-shadow: 0 0 30px cyan;
+        }
+
+        #status {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: cyan;
+            font-family: monospace;
+            font-size: 14px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 3px solid cyan;
+            z-index: 20;
         }
     </style>
 </head>
 <body>
     <div id="info">
-        <h1>✨ Xanadu's 3D Studio</h1>
-        <p>Beautiful websites made simple</p>
-        <button>Get Started</button>
+        <h1>⚡ XANADU'S SCANNER ⚡</h1>
+        <p>SYSTEM ACTIVE // TARGET ACQUIRED</p>
+        <button>INITIATE PROTOCOL</button>
+    </div>
+
+    <div id="status">
+        SCANNING ████████░░ 80% | TARGETS: 5 DETECTED | POWER: 100%
     </div>
 
     <script type="importmap">
@@ -65,207 +101,429 @@
         }
     </script>
 
-   <script type="module">
+    <script type="module">
         import * as THREE from 'three';
 
-        // Setup
+        // =============================================
+        // SETUP - Create the scene
+        // =============================================
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x050510);
+        scene.background = new THREE.Color(0x050510); // Dark blue-black
         
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 8;
+        camera.position.set(5, 2, 8);
+        camera.lookAt(0, 0, 0);
         
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
         document.body.appendChild(renderer.domElement);
 
-        // --- CREATE A SPIRAL GALAXY ---
-        const galaxyGeometry = new THREE.BufferGeometry();
-        const galaxyCount = 5000;
-        
-        const positions = new Float32Array(galaxyCount * 3);
-        const colors = new Float32Array(galaxyCount * 3);
-        
-        const colorInside = new THREE.Color(0xff6b6b);
-        const colorOutside = new THREE.Color(0x4ecdc4);
-        
-        for (let i = 0; i < galaxyCount; i++) {
-            // Spiral math!
-            const r = Math.random() * 5;
-            const angle = r * 5; // Spiral factor
-            const height = Math.sin(r * 3) * 1.5;
-            
-            const x = Math.cos(angle) * r;
-            const y = height;
-            const z = Math.sin(angle) * r;
-            
-            positions[i*3] = x;
-            positions[i*3+1] = y;
-            positions[i*3+2] = z;
-            
-            // Color gradient
-            const mixedColor = colorInside.clone().lerp(colorOutside, r / 5);
-            colors[i*3] = mixedColor.r;
-            colors[i*3+1] = mixedColor.g;
-            colors[i*3+2] = mixedColor.b;
-        }
-        
-        galaxyGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        galaxyGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-        
-        const galaxyMaterial = new THREE.PointsMaterial({
-            size: 0.1,
-            vertexColors: true,
-            blending: THREE.AdditiveBlending,
-            transparent: true,
-            depthWrite: false
-        });
-        
-        const galaxy = new THREE.Points(galaxyGeometry, galaxyMaterial);
-        scene.add(galaxy);
-
-        // --- ADD A GLOWING CORE (BLACK HOLE EFFECT) ---
-        const coreGeometry = new THREE.SphereGeometry(0.8, 32, 32);
-        const coreMaterial = new THREE.MeshStandardMaterial({
-            color: 0xff3366,
-            emissive: 0x440011,
-            roughness: 0.2,
-            metalness: 0.8
-        });
-        const core = new THREE.Mesh(coreGeometry, coreMaterial);
-        scene.add(core);
-
-        // Add inner glow ring
-        const glowRingGeometry = new THREE.TorusGeometry(1.2, 0.05, 16, 100);
-        const glowRingMaterial = new THREE.MeshStandardMaterial({
-            color: 0x4ecdc4,
-            emissive: 0x114444,
-            transparent: true,
-            opacity: 0.8
-        });
-        const glowRing = new THREE.Mesh(glowRingGeometry, glowRingMaterial);
-        glowRing.rotation.x = Math.PI / 2;
-        scene.add(glowRing);
-
-        // Add outer ring
-        const outerRingGeometry = new THREE.TorusGeometry(1.8, 0.03, 16, 100);
-        const outerRingMaterial = new THREE.MeshStandardMaterial({
-            color: 0xff6b6b,
-            emissive: 0x331111,
-            transparent: true,
-            opacity: 0.6
-        });
-        const outerRing = new THREE.Mesh(outerRingGeometry, outerRingMaterial);
-        outerRing.rotation.x = Math.PI / 2;
-        outerRing.rotation.z = 0.3;
-        scene.add(outerRing);
-
-        // --- FLOATING CRYSTALS AROUND THE CORE ---
-        const crystals = [];
-        for (let i = 0; i < 12; i++) {
-            const geometry = new THREE.OctahedronGeometry(0.15);
-            const material = new THREE.MeshStandardMaterial({
-                color: i % 2 === 0 ? 0xff6b6b : 0x4ecdc4,
-                emissive: 0x222222,
-                roughness: 0.3,
-                metalness: 0.4
-            });
-            const crystal = new THREE.Mesh(geometry, material);
-            
-            const angle = (i / 12) * Math.PI * 2;
-            const radius = 2.5;
-            crystal.position.x = Math.cos(angle) * radius;
-            crystal.position.z = Math.sin(angle) * radius;
-            crystal.position.y = Math.sin(angle * 2) * 0.5;
-            
-            scene.add(crystal);
-            crystals.push(crystal);
-        }
-
-        // --- LIGHTING FOR DRAMA ---
+        // =============================================
+        // LIGHTS - Dramatic lighting
+        // =============================================
         const ambientLight = new THREE.AmbientLight(0x404060);
         scene.add(ambientLight);
         
-        const light1 = new THREE.PointLight(0xff3366, 2, 10);
-        light1.position.set(2, 2, 2);
+        const light1 = new THREE.PointLight(0xff00ff, 2, 20);
+        light1.position.set(3, 3, 3);
         scene.add(light1);
         
-        const light2 = new THREE.PointLight(0x4ecdc4, 2, 10);
-        light2.position.set(-2, -1, -2);
+        const light2 = new THREE.PointLight(0x00ffff, 2, 20);
+        light2.position.set(-3, -1, -3);
         scene.add(light2);
         
-        // Add pulsing light
-        const pulseLight = new THREE.PointLight(0xff6b6b, 3, 8);
-        pulseLight.position.set(0, 0, 2);
-        scene.add(pulseLight);
+        const backLight = new THREE.PointLight(0x3366ff, 1, 15);
+        backLight.position.set(0, 0, -5);
+        scene.add(backLight);
 
-        // --- RAINBOW PARTICLE STREAMS ---
-        const streamGeometry = new THREE.BufferGeometry();
-        const streamCount = 800;
-        const streamPositions = new Float32Array(streamCount * 3);
-        
-        for (let i = 0; i < streamCount; i++) {
-            const t = i / streamCount;
-            const angle = t * Math.PI * 8;
-            const radius = 3 + Math.sin(t * 10) * 1;
-            
-            streamPositions[i*3] = Math.cos(angle) * radius;
-            streamPositions[i*3+1] = Math.sin(angle * 2) * 1.5;
-            streamPositions[i*3+2] = Math.sin(angle) * radius;
+        // Add some floating orbs for atmosphere
+        const glowBalls = [];
+        for (let i = 0; i < 4; i++) {
+            const geometry = new THREE.SphereGeometry(0.1, 8);
+            const material = new THREE.MeshStandardMaterial({
+                color: i % 2 === 0 ? 0xff00ff : 0x00ffff,
+                emissive: 0x220022
+            });
+            const ball = new THREE.Mesh(geometry, material);
+            ball.position.set(
+                (i - 2) * 2,
+                Math.sin(i) * 2,
+                -3
+            );
+            scene.add(ball);
+            glowBalls.push(ball);
         }
+
+        // =============================================
+        // FLOATING GEOMETRIC SHAPES (Your original)
+        // =============================================
+        const shapes = [];
+        const colors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xffcc5c];
         
-        streamGeometry.setAttribute('position', new THREE.BufferAttribute(streamPositions, 3));
-        
-        const streamMaterial = new THREE.PointsMaterial({
-            size: 0.08,
-            color: 0x88ccff,
+        for (let i = 0; i < 30; i++) {
+            let geometry;
+            if (Math.random() > 0.5) {
+                geometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+            } else {
+                geometry = new THREE.SphereGeometry(0.15, 16, 16);
+            }
+            
+            const material = new THREE.MeshStandardMaterial({
+                color: colors[Math.floor(Math.random() * colors.length)],
+                emissive: 0x222222,
+                roughness: 0.3,
+                metalness: 0.1,
+                transparent: true,
+                opacity: 0.7
+            });
+            
+            const shape = new THREE.Mesh(geometry, material);
+            
+            const radius = 3;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            
+            shape.position.x = radius * Math.sin(phi) * Math.cos(theta);
+            shape.position.y = radius * Math.sin(phi) * Math.sin(theta);
+            shape.position.z = radius * Math.cos(phi);
+            
+            scene.add(shape);
+            shapes.push(shape);
+        }
+
+        // =============================================
+        // FLOATING PARTICLES (Your original)
+        // =============================================
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlesCount = 1500;
+        const posArray = new Float32Array(particlesCount * 3);
+        const colorArray = new Float32Array(particlesCount * 3);
+
+        for (let i = 0; i < particlesCount * 3; i += 3) {
+            const r = 4 + Math.random() * 2;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            
+            posArray[i] = r * Math.sin(phi) * Math.cos(theta);
+            posArray[i+1] = r * Math.sin(phi) * Math.sin(theta);
+            posArray[i+2] = r * Math.cos(phi);
+            
+            colorArray[i] = 1;
+            colorArray[i+1] = 0.4;
+            colorArray[i+2] = 0.4;
+        }
+
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colorArray, 3));
+
+        const particlesMaterial = new THREE.PointsMaterial({
+            size: 0.03,
+            vertexColors: true,
+            transparent: true,
             blending: THREE.AdditiveBlending
         });
-        
-        const stream = new THREE.Points(streamGeometry, streamMaterial);
-        scene.add(stream);
 
-        // --- ANIMATION WITH MIND-BENDING EFFECTS ---
-        let time = 0;
+        const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+        scene.add(particlesMesh);
+
+        // =============================================
+        // CENTERPIECE - Glowing Core (Your original)
+        // =============================================
+        const torusGeometry = new THREE.TorusGeometry(0.5, 0.15, 16, 100);
+        const torusMaterial = new THREE.MeshStandardMaterial({
+            color: 0xff6b6b,
+            emissive: 0x442222,
+            roughness: 0.2,
+            metalness: 0.3
+        });
+        const torus = new THREE.Mesh(torusGeometry, torusMaterial);
+        torus.position.set(0, 0, 0);
+        scene.add(torus);
+        shapes.push(torus);
+
+        const ringGeometry = new THREE.TorusGeometry(0.3, 0.05, 16, 100);
+        const ringMaterial = new THREE.MeshStandardMaterial({
+            color: 0x4ecdc4,
+            emissive: 0x224444
+        });
+        const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+        ring.rotation.x = Math.PI / 2;
+        ring.rotation.z = Math.PI / 4;
+        scene.add(ring);
+        shapes.push(ring);
+
+        // =============================================
+        // INTERACTIVE SCANNER EFFECT - THE GOOD STUFF!
+        // =============================================
+
+        // 1. MAIN SCANNER RING
+        const scannerRingGeometry = new THREE.TorusGeometry(2.8, 0.03, 32, 100);
+        const scannerRingMaterial = new THREE.MeshStandardMaterial({
+            color: 0x00ffff,
+            emissive: 0x004444,
+            transparent: true,
+            opacity: 0.6
+        });
+        const scannerRing = new THREE.Mesh(scannerRingGeometry, scannerRingMaterial);
+        scannerRing.rotation.x = Math.PI / 2;
+        scene.add(scannerRing);
+
+        // 2. SECONDARY RING (angled)
+        const scannerRing2Geometry = new THREE.TorusGeometry(2.8, 0.02, 32, 100);
+        const scannerRing2Material = new THREE.MeshStandardMaterial({
+            color: 0xff00ff,
+            emissive: 0x440044,
+            transparent: true,
+            opacity: 0.4
+        });
+        const scannerRing2 = new THREE.Mesh(scannerRing2Geometry, scannerRing2Material);
+        scannerRing2.rotation.z = Math.PI / 3;
+        scannerRing2.rotation.x = Math.PI / 3;
+        scene.add(scannerRing2);
+
+        // 3. SCANNER BEAM (the rotating line)
+        const beamLength = 3.5;
+        const beamGeometry = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(beamLength, 0, 0)
+        ]);
+        const beamMaterial = new THREE.LineBasicMaterial({ color: 0x00ffff });
+        const scannerBeam = new THREE.Line(beamGeometry, beamMaterial);
+        scene.add(scannerBeam);
+
+        // 4. SECONDARY BEAM (opposite side)
+        const beam2Geometry = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(-beamLength, 0, 0)
+        ]);
+        const beam2Material = new THREE.LineBasicMaterial({ color: 0xff00ff, opacity: 0.3, transparent: true });
+        const scannerBeam2 = new THREE.Line(beam2Geometry, beam2Material);
+        scene.add(scannerBeam2);
+
+        // 5. VERTICAL SCAN LINES (the cage)
+        for (let i = 0; i < 12; i++) {
+            const angle = (i / 12) * Math.PI * 2;
+            const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(Math.cos(angle) * 3, -2, Math.sin(angle) * 3),
+                new THREE.Vector3(Math.cos(angle) * 3, 2, Math.sin(angle) * 3)
+            ]);
+            const lineMaterial = new THREE.LineBasicMaterial({ 
+                color: 0x00aaff, 
+                opacity: 0.2, 
+                transparent: true 
+            });
+            const line = new THREE.Line(lineGeometry, lineMaterial);
+            scene.add(line);
+        }
+
+        // 6. HORIZONTAL RINGS (multiple levels)
+        for (let level = -1.5; level <= 1.5; level += 1.5) {
+            const ringGeo = new THREE.TorusGeometry(3, 0.02, 16, 64);
+            const ringMat = new THREE.MeshStandardMaterial({
+                color: 0x00ffff,
+                emissive: 0x004444,
+                transparent: true,
+                opacity: 0.2
+            });
+            const ringHoriz = new THREE.Mesh(ringGeo, ringMat);
+            ringHoriz.rotation.x = Math.PI / 2;
+            ringHoriz.position.y = level;
+            scene.add(ringHoriz);
+        }
+
+        // 7. SCANNING DOT (travels along beam)
+        const scanDotGeometry = new THREE.SphereGeometry(0.15, 16, 16);
+        const scanDotMaterial = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            emissive: 0x4488ff
+        });
+        const scanDot = new THREE.Mesh(scanDotGeometry, scanDotMaterial);
+        scene.add(scanDot);
+
+        // 8. SCAN TARGETS (things to detect)
+        const scanTargets = [];
+        const targetColors = [0xff3333, 0x33ff33, 0x3333ff, 0xffff33, 0xff33ff];
         
+        for (let i = 0; i < 8; i++) {
+            const targetGeometry = new THREE.IcosahedronGeometry(0.2, 1);
+            const targetMaterial = new THREE.MeshStandardMaterial({
+                color: targetColors[i % targetColors.length],
+                emissive: 0x220000,
+                roughness: 0.3,
+                metalness: 0.2
+            });
+            const target = new THREE.Mesh(targetGeometry, targetMaterial);
+            
+            const angle = (i / 8) * Math.PI * 2;
+            const radius = 2.2;
+            target.position.x = Math.cos(angle) * radius;
+            target.position.z = Math.sin(angle) * radius;
+            target.position.y = Math.sin(angle * 3) * 0.8;
+            
+            scene.add(target);
+            scanTargets.push(target);
+        }
+
+        // 9. GRID FLOOR (Tron style)
+        const gridHelper = new THREE.GridHelper(12, 24, 0x00ffff, 0x004444);
+        gridHelper.position.y = -2;
+        scene.add(gridHelper);
+
+        // 10. FLOATING SCAN LINES (horizontal planes)
+        for (let j = 0; j < 5; j++) {
+            const yPos = -1.5 + j * 0.8;
+            const points = [];
+            for (let k = 0; k <= 20; k++) {
+                const angle = (k / 20) * Math.PI * 2;
+                points.push(new THREE.Vector3(
+                    Math.cos(angle) * 3,
+                    yPos + Math.sin(angle * 4) * 0.1,
+                    Math.sin(angle) * 3
+                ));
+            }
+            const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+            const lineMat = new THREE.LineBasicMaterial({ color: 0x00aaff, opacity: 0.1, transparent: true });
+            const line = new THREE.Line(lineGeo, lineMat);
+            scene.add(line);
+        }
+
+        // 11. ENERGY ORBS floating around
+        const energyOrbs = [];
+        for (let i = 0; i < 6; i++) {
+            const orbGeo = new THREE.SphereGeometry(0.08, 6);
+            const orbMat = new THREE.MeshStandardMaterial({
+                color: 0x00ffff,
+                emissive: 0x004444
+            });
+            const orb = new THREE.Mesh(orbGeo, orbMat);
+            scene.add(orb);
+            energyOrbs.push(orb);
+        }
+
+        // 12. LASER CROSSHAIRS (center)
+        const crosshairGeo = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(-0.5, 0, 0),
+            new THREE.Vector3(0.5, 0, 0),
+            new THREE.Vector3(0, -0.5, 0),
+            new THREE.Vector3(0, 0.5, 0),
+            new THREE.Vector3(0, 0, -0.5),
+            new THREE.Vector3(0, 0, 0.5)
+        ]);
+        const crosshairMat = new THREE.LineBasicMaterial({ color: 0xff00ff });
+        const crosshair = new THREE.LineSegments(crosshairGeo, crosshairMat);
+        scene.add(crosshair);
+
+        // =============================================
+        // ANIMATION - The Magic Happens Here
+        // =============================================
+        let scannerAngle = 0;
+        let scanProgress = 0;
+        let time = 0;
+
         function animate() {
             requestAnimationFrame(animate);
             
-            time += 0.005;
+            time += 0.01;
             
-            // Rotate galaxy
-            galaxy.rotation.y += 0.001;
-            galaxy.rotation.x += 0.0005;
+            // Rotate main scanner ring
+            scannerRing.rotation.y += 0.008;
+            scannerRing2.rotation.x += 0.005;
+            scannerRing2.rotation.y += 0.005;
+            scannerRing2.rotation.z += 0.003;
             
-            // Pulse the core
-            const scale = 1 + Math.sin(time * 5) * 0.05;
-            core.scale.set(scale, scale, scale);
+            // Rotate scanner beams
+            scannerAngle += 0.015;
+            scannerBeam.rotation.y = scannerAngle;
+            scannerBeam2.rotation.y = scannerAngle + Math.PI; // Opposite side
             
-            // Rotate rings
-            glowRing.rotation.y += 0.002;
-            glowRing.rotation.x = Math.PI / 2 + Math.sin(time) * 0.1;
+            // Move scan dot along the beam
+            scanProgress = (scanProgress + 0.01) % 1;
+            const dotDistance = scanProgress * beamLength;
             
-            outerRing.rotation.y += 0.003;
-            outerRing.rotation.x = Math.PI / 2 + Math.cos(time) * 0.1;
+            scanDot.position.x = Math.cos(scannerAngle) * dotDistance;
+            scanDot.position.z = Math.sin(scannerAngle) * dotDistance;
+            scanDot.position.y = Math.sin(time * 3) * 0.3;
             
-            // Float crystals
-            crystals.forEach((crystal, i) => {
-                crystal.rotation.x += 0.01;
-                crystal.rotation.y += 0.02;
-                crystal.position.y += Math.sin(time * 3 + i) * 0.005;
+            // Pulse scan dot
+            scanDot.scale.setScalar(1 + Math.sin(time * 20) * 0.3);
+            
+            // Move energy orbs in a pattern
+            energyOrbs.forEach((orb, i) => {
+                const orbAngle = time * 2 + (i / energyOrbs.length) * Math.PI * 2;
+                orb.position.x = Math.cos(orbAngle) * 1.5;
+                orb.position.z = Math.sin(orbAngle) * 1.5;
+                orb.position.y = Math.sin(orbAngle * 2) * 1;
             });
             
-            // Rotate stream
-            stream.rotation.y += 0.002;
-            stream.rotation.z += 0.001;
+            // Check if scan dot hits any targets
+            scanTargets.forEach(target => {
+                const distance = target.position.distanceTo(scanDot.position);
+                if (distance < 0.6) {
+                    // Highlight target when scanned
+                    target.material.emissive.setHSL((time * 0.1) % 1, 1, 0.5);
+                    target.scale.setScalar(1.2);
+                    
+                    // Create particle burst occasionally
+                    if (Math.random() < 0.05) {
+                        for (let p = 0; p < 5; p++) {
+                            const burstGeo = new THREE.SphereGeometry(0.03, 4);
+                            const burstMat = new THREE.MeshStandardMaterial({ 
+                                color: 0x00ffff, 
+                                emissive: 0x0044aa,
+                                transparent: true,
+                                opacity: 0.8
+                            });
+                            const burst = new THREE.Mesh(burstGeo, burstMat);
+                            burst.position.copy(target.position);
+                            burst.position.x += (Math.random() - 0.5) * 0.3;
+                            burst.position.y += (Math.random() - 0.5) * 0.3;
+                            burst.position.z += (Math.random() - 0.5) * 0.3;
+                            scene.add(burst);
+                            
+                            // Remove after animation
+                            setTimeout(() => scene.remove(burst), 100);
+                        }
+                    }
+                } else {
+                    target.material.emissive.setHex(0x000000);
+                    target.scale.setScalar(1);
+                }
+            });
             
-            // Pulse light intensity
-            pulseLight.intensity = 2 + Math.sin(time * 8) * 1.5;
+            // Pulse grid floor colors
+            gridHelper.material.color.setHSL(0.55 + Math.sin(time) * 0.05, 1, 0.5);
             
-            // Move camera slightly
-            camera.position.x = Math.sin(time * 0.2) * 2;
-            camera.position.y = Math.cos(time * 0.3) * 1;
+            // Rotate shapes (your original)
+            shapes.forEach((shape, i) => {
+                shape.rotation.x += 0.005;
+                shape.rotation.y += 0.008;
+                shape.position.x += Math.sin(time + i) * 0.001;
+                shape.position.y += Math.cos(time + i) * 0.001;
+            });
+            
+            // Rotate particles
+            particlesMesh.rotation.y += 0.0005;
+            particlesMesh.rotation.x += 0.0003;
+            
+            // Float glow balls
+            glowBalls.forEach((ball, i) => {
+                ball.position.y += Math.sin(time * 2 + i) * 0.005;
+            });
+            
+            // Rotate crosshair
+            crosshair.rotation.x += 0.005;
+            crosshair.rotation.y += 0.005;
+            
+            // Update status text with random scan percentage
+            const scanPercent = Math.floor(50 + Math.sin(time) * 30);
+            document.getElementById('status').innerHTML = 
+                `SCANNING █${'█'.repeat(Math.floor(scanPercent/10))}${'░'.repeat(10-Math.floor(scanPercent/10))} ${scanPercent}% | TARGETS: ${scanTargets.length} DETECTED | POWER: ${Math.floor(90 + Math.sin(time*3)*10)}%`;
+            
+            // Camera movement - subtle orbit
+            camera.position.x = 5 + Math.sin(time * 0.2) * 2;
+            camera.position.z = 8 + Math.cos(time * 0.2) * 2;
             camera.lookAt(0, 0, 0);
             
             renderer.render(scene, camera);
@@ -273,12 +531,16 @@
         
         animate();
 
-        // Handle resize
+        // Handle window resize
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
+
+        // Add some console flair
+        console.log('%c🔍 SCANNER ACTIVE - WELCOME TO THE FUTURE 🔍', 'color: cyan; font-size: 20px; font-weight: bold;');
+        console.log('%cSystem ready for target acquisition', 'color: magenta;');
     </script>
 </body>
 </html>
