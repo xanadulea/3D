@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🌀 THE INFINITY ARCADE - Auto-Switching Games</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a0a0f;
+            overflow: hidden;
+            font-family: 'Segoe UI', 'Arial Black', sans-serif;
+        }
+        
+        #game-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle at center, #1a1a2e, #0a0a0f);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        canvas {
+            border: 3px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            box-shadow: 0 0 50px rgba(0,255,255,0.3);
+            transition: all 1s ease;
+            max-width: 100%;
+            max-height: 100%;
+        }
+        
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            border-left: 5px solid cyan;
+            color: white;
+            font-family: 'Courier New', monospace;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        #game-title {
+            font-size: 32px;
+            font-weight: bold;
+            background: linear-gradient(45deg, cyan, magenta);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+        
+        #timer-bar {
+            width: 300px;
+            height: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+        
+        #timer-fill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, cyan, magenta);
+            border-radius: 5px;
+            transition: width 1s linear;
+            box-shadow: 0 0 20px cyan;
+        }
+        
+        #next-game {
+            font-size: 18px;
+            color: #888;
+            margin-top: 10px;
+        }
+        
+        #next-game span {
+            color: cyan;
+            font-weight: bold;
+        }
+        
+        #scoreboard {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            border-right: 5px solid magenta;
+            color: white;
+            font-family: 'Courier New', monospace;
+            text-align: right;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .score-item {
+            font-size: 20px;
+            margin: 5px 0;
+        }
+        
+        .score-label {
+            color: #888;
+            margin-right: 10px;
+        }
+        
+        .score-value {
+            color: cyan;
+            font-weight: bold;
+        }
+        
+        #game-overlay {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 1000;
+        }
+        
+        .game-dot {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        
+        .game-dot.active {
+            background: cyan;
+            box-shadow: 0 0 20px cyan;
+            transform: scale(1.5);
+        }
+        
+        .game-dot.completed {
+            background: magenta;
+            opacity: 0.5;
+        }
+        
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 48px;
+            font-weight: bold;
+            text-align: center;
+            opacity: 0;
+            transition: all 0.5s;
+            z-index: 2000;
+            text-shadow: 0 0 30px cyan;
+            pointer-events: none;
+        }
+        
+        #message.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+    
+    <div id="hud">
+        <div id="game-title">PONG</div>
+        <div id="timer-bar">
+            <div id="timer-fill"></div>
+        </div>
+        <div id="next-game">NEXT: <span>SNEK</span></div>
+    </div>
+    
+    <div id="scoreboard">
+        <div class="score-item"><span class="score-label">🏓 PONG</span> <span class="score-value" id="score-pong">0</span></div>
+        <div class="score-item"><span class="score-label">🐍 SNEK</span> <span class="score-value" id="score-snake">0</span></div>
+        <div class="score-item"><span class="score-label">🧱 BREAKOUT</span> <span class="score-value" id="score-breakout">0</span></div>
+        <div class="score-item"><span class="score-label">🎯 MEMORY</span> <span class="score-value" id="score-memory">0</span></div>
+        <div class="score-item"><span class="score-label">🌀 RACER</span> <span class="score-value" id="score-racer">0</span></div>
+    </div>
+    
+    <div id="game-overlay">
+        <div class="game-dot active" data-game="0"></div>
+        <div class="game-dot" data-game="1"></div>
+        <div class="game-dot" data-game="2"></div>
+        <div class="game-dot" data-game="3"></div>
+        <div class="game-dot" data-game="4"></div>
+    </div>
+    
+    <div id="message">🎮</div>
+
+    <script>
+        // =============================================
+        // GAME ROTATOR SYSTEM
+        // =============================================
+        
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Game configuration
+        const GAMES = [
+            { name: 'PONG', time: 180 },      // 3 minutes
+            { name: 'SNEK', time: 240 },       // 4 minutes
+            { name: 'BREAKOUT', time: 180 },    // 3 minutes
+            { name: 'MEMORY', time: 120 },      // 2 minutes
+            { name: 'RACER', time: 180 }        // 3 minutes
+        ];
+        
+        let currentGame = 0;
+        let timeRemaining = GAMES[0].time;
+        let scores = [0, 0, 0, 0, 0];
+        let transitionActive = false;
+        
+        // Resize canvas
+        function resizeCanvas() {
+            const container = document.getElementById('game-container');
+            canvas.width = Math.min(800, container.clientWidth - 40);
+            canvas.height = Math.min(600, container.clientHeight - 40);
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // =============================================
+        // GAME 1: PONG (Enhanced)
+        // =============================================
+        class PongGame {
+            constructor() {
+                this.ball = { x: 400, y: 300, radius: 8, speedX: 5, speedY: 4 };
+                this.paddle1 = { x: 30, y: 250, width: 15, height: 100, score: 0 };
+                this.paddle2 = { x: 755, y: 250, width: 15, height: 100, score: 0 };
+                this.particles = [];
+            }
+            
+            update(mouseY) {
+                // Mouse control for left paddle
+                this.paddle1.y = Math.max(0, Math.min(500, mouseY - this.paddle1.height/2));
+                
+                // AI for right paddle
+                this.paddle2.y += (this.ball.y - (this.paddle2.y + this.paddle2.height/2)) * 0.1;
+                
+                // Ball movement
+                this.ball.x += this.ball.speedX;
+                this.ball.y += this.ball.speedY;
+                
+                // Wall collisions
+                if (this.ball.y < 0 || this.ball.y > 600) {
+                    this.ball.speedY *= -1;
+                    this.createParticles(this.ball.x, this.ball.y);
+                }
+                
+                // Paddle collisions
+                if (this.ball.x - this.ball.radius < this.paddle1.x + this.paddle1.width && 
+                    this.ball.x + this.ball.radius > this.paddle1.x &&
+                    this.ball.y > this.paddle1.y && 
+                    this.ball.y < this.paddle1.y + this.paddle1.height) {
+                    this.ball.speedX *= -1.1;
+                    this.ball.speedY *= 1.05;
+                    this.createParticles(this.ball.x, this.ball.y);
+                }
+                
+                if (this.ball.x + this.ball.radius > this.paddle2.x && 
+                    this.ball.x - this.ball.radius < this.paddle2.x + this.paddle2.width &&
+                    this.ball.y > this.paddle2.y && 
+                    this.ball.y < this.paddle2.y + this.paddle2.height) {
+                    this.ball.speedX *= -1.1;
+                    this.ball.speedY *= 1.05;
+                    this.createParticles(this.ball.x, this.ball.y);
+                }
+                
+                // Scoring
+                if (this.ball.x < 0) {
+                    this.paddle2.score++;
+                    scores[currentGame] = this.paddle2.score;
+                    this.resetBall();
+                }
+                if (this.ball.x > 800) {
+                    this.paddle1.score++;
+                    scores[currentGame] = this.paddle1.score;
+                    this.resetBall();
+                }
+                
+                // Update particles
+                this.particles = this.particles.filter(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life -= 0.02;
+                    return p.life > 0;
+                });
+            }
+            
+            createParticles(x, y) {
+                for (let i = 0; i < 5; i++) {
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: (Math.random() - 0.5) * 5,
+                        vy: (Math.random() - 0.5) * 5,
+                        life: 1
+                    });
+                }
+            }
+            
+            resetBall() {
+                this.ball.x = 400;
+                this.ball.y = 300;
+                this.ball.speedX = 5 * (Math.random() > 0.5 ? 1 : -1);
+                this.ball.speedY = 4 * (Math.random() > 0.5 ? 1 : -1);
+            }
+            
+            draw(ctx) {
+                // Clear with trail effect
+                ctx.fillStyle = 'rgba(10,10,20,0.1)';
+                ctx.fillRect(0, 0, 800, 600);
+                
+                // Draw particles
+                this.particles.forEach(p => {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255,255,255,${p.life})`;
+                    ctx.fill();
+                });
+                
+                // Draw center line
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([10, 10]);
+                ctx.beginPath();
+                ctx.moveTo(400, 0);
+                ctx.lineTo(400, 600);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                // Draw ball with glow
+                ctx.shadowColor = 'cyan';
+                ctx.shadowBlur = 20;
+                ctx.beginPath();
+                ctx.arc(this.ball.x, this.ball.y, this.ball.radius, 0, Math.PI * 2);
+                ctx.fillStyle = 'white';
+                ctx.fill();
+                
+                // Draw paddles
+                ctx.shadowBlur = 10;
+                ctx.fillStyle = 'cyan';
+                ctx.fillRect(this.paddle1.x, this.paddle1.y, this.paddle1.width, this.paddle1.height);
+                ctx.fillStyle = 'magenta';
+                ctx.fillRect(this.paddle2.x, this.paddle2.y, this.paddle2.width, this.paddle2.height);
+                
+                // Draw scores
+                ctx.shadowBlur = 0;
+                ctx.font = 'bold 48px "Courier New"';
+                ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                ctx.fillText(this.paddle1.score, 150, 100);
+                ctx.fillText(this.paddle2.score, 600, 100);
+            }
+        }
+        
+        // =============================================
+        // GAME 2: SNEK (Modern)
+        // =============================================
+        class SnakeGame {
+            constructor() {
+                this.snake = [{x: 10, y: 10}];
+                this.food = {x: 15, y: 15};
+                this.direction = {x: 1, y: 0};
+                this.gridSize = 20;
+                this.cellSize = 30;
+                this.score = 0;
+                this.gameOver = false;
+                this.particles = [];
+            }
+            
+            update() {
+                if (this.gameOver) return;
+                
+                // Move snake
+                const head = {...this.snake[0]};
+                head.x += this.direction.x;
+                head.y += this.direction.y;
+                
+                // Wrap around screen
+                if (head.x < 0) head.x = 25;
+                if (head.x > 25) head.x = 0;
+                if (head.y < 0) head.y = 20;
+                if (head.y > 20) head.y = 0;
+                
+                // Check collision with self
+                if (this.snake.some(segment => segment.x === head.x && segment.y === head.y)) {
+                    this.gameOver = true;
+                    return;
+                }
+                
+                this.snake.unshift(head);
+                
+                // Check food
+                if (head.x === this.food.x && head.y === this.food.y) {
+                    this.score += 10;
+                    scores[currentGame] = this.score;
+                    this.createParticles(this.food.x * this.cellSize, this.food.y * this.cellSize);
+                    this.food = {
+                        x: Math.floor(Math.random() * 25),
+                        y: Math.floor(Math.random() * 20)
+                    };
+                } else {
+                    this.snake.pop();
+                }
+                
+                // Update particles
+                this.particles = this.particles.filter(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life -= 0.02;
+                    return p.life > 0;
+                });
+            }
+            
+            createParticles(x, y) {
+                for (let i = 0; i < 10; i++) {
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: (Math.random() - 0.5) * 8,
+                        vy: (Math.random() - 0.5) * 8,
+                        life: 1
+                    });
+                }
+            }
+            
+            changeDirection(dx, dy) {
+                if (this.direction.x !== -dx || this.direction.y !== -dy) {
+                    this.direction = {x: dx, y: dy};
+                }
+            }
+            
+            draw(ctx) {
+                ctx.fillStyle = 'rgba(10,10,20,1)';
+                ctx.fillRect(0, 0, 800, 600);
+                
+                // Draw grid
+                ctx.strokeStyle = 'rgba(0,255,255,0.1)';
+                ctx.lineWidth = 1;
+                for (let i = 0; i <= 25; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(i * this.cellSize, 0);
+                    ctx.lineTo(i * this.cellSize, 600);
+                    ctx.stroke();
+                }
+                for (let i = 0; i <= 20; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, i * this.cellSize);
+                    ctx.lineTo(800, i * this.cellSize);
+                    ctx.stroke();
+                }
+                
+                // Draw food
+                ctx.shadowColor = 'cyan';
+                ctx.shadowBlur = 20;
+                ctx.fillStyle = 'cyan';
+                ctx.beginPath();
+                ctx.arc(this.food.x * this.cellSize + this.cellSize/2, 
+                        this.food.y * this.cellSize + this.cellSize/2, 
+                        10, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw snake
+                this.snake.forEach((segment, i) => {
+                    const intensity = 1 - (i / this.snake.length) * 0.5;
+                    ctx.fillStyle = `rgba(0, 255, 0, ${intensity})`;
+                    ctx.shadowColor = 'lime';
+                    ctx.shadowBlur = 15;
+                    ctx.fillRect(segment.x * this.cellSize + 2, 
+                               segment.y * this.cellSize + 2, 
+                               this.cellSize - 4, this.cellSize - 4);
+                });
+                
+                // Draw particles
+                ctx.shadowBlur = 0;
+                this.particles.forEach(p => {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255,255,255,${p.life})`;
+                    ctx.fill();
+                });
+                
+                // Draw score
+                ctx.shadowBlur = 0;
+                ctx.font = 'bold 48px "Courier New"';
+                ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                ctx.fillText(this.score, 350, 100);
+                
+                if (this.gameOver) {
+                    ctx.font = 'bold 72px "Arial Black"';
+                    ctx.fillStyle = 'rgba(255,0,0,0.2)';
+                    ctx.fillText('GAME OVER', 150, 300);
+                }
+            }
+        }
+        
+        // =============================================
+        // GAME 3: BREAKOUT (Simplified)
+        // =============================================
+        class BreakoutGame {
+            constructor() {
+                this.paddle = { x: 350, y: 550, width: 100, height: 15 };
+                this.ball = { x: 400, y: 500, radius: 8, speedX: 4, speedY: -4 };
+                this.bricks = [];
+                this.score = 0;
+                
+                // Create bricks
+                for (let row = 0; row < 5; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        this.bricks.push({
+                            x: col * 90 + 50,
+                            y: row * 30 + 50,
+                            width: 80,
+                            height: 20,
+                            active: true,
+                            color: `hsl(${row * 30}, 80%, 60%)`
+                        });
+                    }
+                }
+            }
+            
+            update(mouseX) {
+                // Move paddle
+                this.paddle.x = Math.max(0, Math.min(700, mouseX - this.paddle.width/2));
+                
+                // Ball movement
+                this.ball.x += this.ball.speedX;
+                this.ball.y += this.ball.speedY;
+                
+                // Wall collisions
+                if (this.ball.x < 0 || this.ball.x > 800) this.ball.speedX *= -1;
+                if (this.ball.y < 0) this.ball.speedY *= -1;
+                
+                // Paddle collision
+                if (this.ball.y + this.ball.radius > this.paddle.y &&
+                    this.ball.x > this.paddle.x &&
+                    this.ball.x < this.paddle.x + this.paddle.width) {
+                    this.ball.speedY *= -1;
+                    this.ball.speedX += (this.ball.x - (this.paddle.x + this.paddle.width/2)) * 0.1;
+                }
+                
+                // Brick collisions
+                this.bricks.forEach(brick => {
+                    if (!brick.active) return;
+                    
+                    if (this.ball.x > brick.x && 
+                        this.ball.x < brick.x + brick.width &&
+                        this.ball.y - this.ball.radius < brick.y + brick.height &&
+                        this.ball.y + this.ball.radius > brick.y) {
+                        
+                        brick.active = false;
+                        this.ball.speedY *= -1;
+                        this.score += 10;
+                        scores[currentGame] = this.score;
+                    }
+                });
+                
+                // Ball fall
+                if (this.ball.y > 600) {
+                    this.reset();
+                }
+            }
+            
+            reset() {
+                this.ball.x = 400;
+                this.ball.y = 500;
+                this.ball.speedX = 4;
+                this.ball.speedY = -4;
+            }
+            
+            draw(ctx) {
+                ctx.fillStyle = 'rgba(10,10,20,1)';
+                ctx.fillRect(0, 0, 800, 600);
+                
+                // Draw bricks
+                this.bricks.forEach(brick => {
+                    if (!brick.active) return;
+                    ctx.fillStyle = brick.color;
+                    ctx.shadowColor = brick.color;
+                    ctx.shadowBlur = 10;
+                    ctx.fillRect(brick.x, brick.y, brick.width, brick.height);
+                });
+                
+                // Draw paddle
+                ctx.shadowColor = 'cyan';
+                ctx.shadowBlur = 20;
+                ctx.fillStyle = 'cyan';
+                ctx.fillRect(this.paddle.x, this.paddle.y, this.paddle.width, this.paddle.height);
+                
+                // Draw ball
+                ctx.beginPath();
+                ctx.arc(this.ball.x, this.ball.y, this.ball.radius, 0, Math.PI * 2);
+                ctx.fillStyle = 'white';
+                ctx.fill();
+                
+                // Draw score
+                ctx.shadowBlur = 0;
+                ctx.font = 'bold 48px "Courier New"';
+                ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                ctx.fillText(this.score, 350, 100);
+            }
+        }
+        
+        // =============================================
+        // GAME 4: MEMORY (Color Match)
+        // =============================================
+        class MemoryGame {
+            constructor() {
+                this.colors = ['red', 'cyan', 'magenta', 'lime', 'yellow', 'orange'];
+                this.targetColor = '';
+                this.options = [];
+                this.score = 0;
+                this.roundTime = 60;
+                this.generateRound();
+            }
+            
+            generateRound() {
+                this.targetColor = this.colors[Math.floor(Math.random() * this.colors.length)];
+                this.options = [];
+                
+                // Add target color
+                for (let i = 0; i < 3; i++) {
+                    this.options.push(this.targetColor);
+                }
+                
+                // Add distractors
+                for (let i = 0; i < 6; i++) {
+                    let color;
+                    do {
+                        color = this.colors[Math.floor(Math.random() * this.colors.length)];
+                    } while (color === this.targetColor);
+                    this.options.push(color);
+                }
+                
+                // Shuffle
+                this.options = this.options.sort(() => Math.random() - 0.5);
+            }
+            
+            checkColor(index) {
+                if (this.options[index] === this.targetColor) {
+                    this.score += 10;
+                    scores[currentGame] = this.score;
+                    this.generateRound();
+                    return true;
+                }
+                return false;
+            }
+            
+            draw(ctx) {
+                ctx.fillStyle = 'rgba(10,10,20,1)';
+                ctx.fillRect(0, 0, 800, 600);
+                
+                // Draw target
+                ctx.font = 'bold 24px "Courier New"';
+                ctx.fillStyle = 'white';
+                ctx.fillText('Find the color:', 300, 100);
+                
+                ctx.shadowColor = this.targetColor;
+                ctx.shadowBlur = 30;
+                ctx.fillStyle = this.targetColor;
+                ctx.beginPath();
+                ctx.arc(400, 200, 50, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw options
+                ctx.shadowBlur = 10;
+                this.options.forEach((color, i) => {
+                    const x = (i % 3) * 200 + 150;
+                    const y = Math.floor(i / 3) * 100 + 300;
+                    
+                    ctx.fillStyle = color;
+                    ctx.shadowColor = color;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 30, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                
+                // Draw score
+                ctx.shadowBlur = 0;
+                ctx.font = 'bold 48px "Courier New"';
+                ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                ctx.fillText(this.score, 350, 550);
+            }
+        }
+        
+        // =============================================
+        // GAME 5: RACER (Simple)
+        // =============================================
+        class RacerGame {
+            constructor() {
+                this.car = { x: 400, y: 500 };
+                this.obstacles = [];
+                this.score = 0;
+                this.frame = 0;
+            }
+            
+            update(mouseX) {
+                this.car.x = Math.max(100, Math.min(700, mouseX));
+                
+                // Spawn obstacles
+                this.frame++;
+                if (this.frame % 30 === 0) {
+                    this.obstacles.push({
+                        x: Math.random() * 700 + 50,
+                        y: 0,
+                        width: 40,
+                        height: 40,
+                        color: `hsl(${Math.random() * 360}, 80%, 60%)`
+                    });
+                }
+                
+                // Move obstacles
+                this.obstacles.forEach(obs => {
+                    obs.y += 5;
+                });
+                
+                // Check collisions
+                this.obstacles = this.obstacles.filter(obs => {
+                    if (obs.y > 600) return false;
+                    
+                    if (obs.y + obs.height > this.car.y &&
+                        obs.x < this.car.x + 30 &&
+                        obs.x + obs.width > this.car.x - 30) {
+                        this.score += 10;
+                        scores[currentGame] = this.score;
+                        return false;
+                    }
+                    return true;
+                });
+            }
+            
+            draw(ctx) {
+                ctx.fillStyle = 'rgba(10,10,20,1)';
+                ctx.fillRect(0, 0, 800, 600);
+                
+                // Draw road
+                ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([20, 20]);
+                for (let i = 0; i < 600; i += 40) {
+                    ctx.beginPath();
+                    ctx.moveTo(400, i);
+                    ctx.lineTo(400, i + 20);
+                    ctx.stroke();
+                }
+                
+                // Draw car
+                ctx.shadowColor = 'cyan';
+                ctx.shadowBlur = 20;
+                ctx.fillStyle = 'cyan';
+                ctx.fillRect(this.car.x - 30, this.car.y - 20, 60, 40);
+                
+                // Draw obstacles
+                this.obstacles.forEach(obs => {
+                    ctx.shadowColor = obs.color;
+                    ctx.fillStyle = obs.color;
+                    ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+                });
+                
+                // Draw score
+                ctx.shadowBlur = 0;
+                ctx.font = 'bold 48px "Courier New"';
+                ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                ctx.fillText(this.score, 350, 100);
+            }
+        }
+        
+        // =============================================
+        // GAME INSTANCES
+        // =============================================
+        const games = [
+            new PongGame(),
+            new SnakeGame(),
+            new BreakoutGame(),
+            new MemoryGame(),
+            new RacerGame()
+        ];
+        
+        // =============================================
+        // ROTATION SYSTEM
+        // =============================================
+        function switchGame(index) {
+            transitionActive = true;
+            
+            // Show message
+            const msg = document.getElementById('message');
+            msg.textContent = `🎮 ${GAMES[index].name} 🎮`;
+            msg.classList.add('show');
+            
+            // Update dots
+            document.querySelectorAll('.game-dot').forEach((dot, i) => {
+                dot.classList.toggle('active', i === index);
+            });
+            
+            setTimeout(() => {
+                currentGame = index;
+                timeRemaining = GAMES[index].time;
+                transitionActive = false;
+                msg.classList.remove('show');
+            }, 2000);
+        }
+        
+        // =============================================
+        // MOUSE TRACKING
+        // =============================================
+        let mouseX = 400, mouseY = 300;
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            mouseX = (e.clientX - rect.left) * scaleX;
+            mouseY = (e.clientY - rect.top) * scaleY;
+        });
+        
+        // Memory game click handler
+        canvas.addEventListener('click', (e) => {
+            if (currentGame === 3 && games[3] instanceof MemoryGame) {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const clickX = (e.clientX - rect.left) * scaleX;
+                const clickY = (e.clientY - rect.top) * scaleY;
+                
+                // Check which color was clicked
+                for (let i = 0; i < 9; i++) {
+                    const x = (i % 3) * 200 + 150;
+                    const y = Math.floor(i / 3) * 100 + 300;
+                    const dist = Math.sqrt((clickX - x)**2 + (clickY - y)**2);
+                    if (dist < 30) {
+                        games[3].checkColor(i);
+                        break;
+                    }
+                }
+            }
+        });
+        
+        // Snake controls
+        window.addEventListener('keydown', (e) => {
+            if (currentGame === 1 && games[1] instanceof SnakeGame) {
+                switch(e.key) {
+                    case 'ArrowUp': games[1].changeDirection(0, -1); break;
+                    case 'ArrowDown': games[1].changeDirection(0, 1); break;
+                    case 'ArrowLeft': games[1].changeDirection(-1, 0); break;
+                    case 'ArrowRight': games[1].changeDirection(1, 0); break;
+                }
+            }
+        });
+        
+        // =============================================
+        // GAME LOOP WITH ROTATION
+        // =============================================
+        let lastTime = Date.now();
+        
+        function gameLoop() {
+            // Update timer
+            const now = Date.now();
+            const delta = (now - lastTime) / 1000;
+            lastTime = now;
+            
+            if (!transitionActive) {
+                timeRemaining -= delta;
+                
+                // Update timer bar
+                const percent = (timeRemaining / GAMES[currentGame].time) * 100;
+                document.getElementById('timer-fill').style.width = `${Math.max(0, percent)}%`;
+                
+                // Update HUD
+                document.getElementById('game-title').textContent = GAMES[currentGame].name;
+                const nextIndex = (currentGame + 1) % GAMES.length;
+                document.getElementById('next-game').innerHTML = `NEXT: <span>${GAMES[nextIndex].name}</span>`;
+                
+                // Update scores
+                document.getElementById('score-pong').textContent = scores[0];
+                document.getElementById('score-snake').textContent = scores[1];
+                document.getElementById('score-breakout').textContent = scores[2];
+                document.getElementById('score-memory').textContent = scores[3];
+                document.getElementById('score-racer').textContent = scores[4];
+                
+                // Switch game if time's up
+                if (timeRemaining <= 0) {
+                    const nextGame = (currentGame + 1) % GAMES.length;
+                    switchGame(nextGame);
+                }
+                
+                // Update current game
+                switch(currentGame) {
+                    case 0: games[0].update(mouseY); break;
+                    case 1: games[1].update(); break;
+                    case 2: games[2].update(mouseX); break;
+                    case 3: break; // Memory game updates on click only
+                    case 4: games[4].update(mouseX); break;
+                }
+            }
+            
+            // Draw current game
+            ctx.clearRect(0, 0, 800, 600);
+            games[currentGame].draw(ctx);
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        gameLoop();
+    </script>
+</body>
+</html>
