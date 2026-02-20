@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My 3D Website</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        
+        #info {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            text-align: center;
+            z-index: 10;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        h1 {
+            font-size: 4em;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        p {
+            font-size: 1.5em;
+            margin-bottom: 30px;
+        }
+        
+        button {
+            padding: 15px 40px;
+            font-size: 1.2em;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 10px 20px rgba(255,107,107,0.4);
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h1>✨ Xanadu's 3D Studio</h1>
+        <p>Beautiful websites made simple</p>
+        <button>Get Started</button>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        // Setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        // Create floating geometric shapes
+        const shapes = [];
+        const colors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xffcc5c];
+        
+        for (let i = 0; i < 30; i++) {
+            // Random shape (cube or sphere)
+            let geometry;
+            if (Math.random() > 0.5) {
+                geometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+            } else {
+                geometry = new THREE.SphereGeometry(0.15, 16, 16);
+            }
+            
+            const material = new THREE.MeshStandardMaterial({
+                color: colors[Math.floor(Math.random() * colors.length)],
+                emissive: 0x222222,
+                roughness: 0.3,
+                metalness: 0.1,
+                transparent: true,
+                opacity: 0.7
+            });
+            
+            const shape = new THREE.Mesh(geometry, material);
+            
+            // Random position in a sphere
+            const radius = 3;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            
+            shape.position.x = radius * Math.sin(phi) * Math.cos(theta);
+            shape.position.y = radius * Math.sin(phi) * Math.sin(theta);
+            shape.position.z = radius * Math.cos(phi);
+            
+            scene.add(shape);
+            shapes.push(shape);
+        }
+
+        // Add floating particles
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlesCount = 1500;
+        const posArray = new Float32Array(particlesCount * 3);
+        const colorArray = new Float32Array(particlesCount * 3);
+
+        for (let i = 0; i < particlesCount * 3; i += 3) {
+            // Position in a sphere
+            const r = 4 + Math.random() * 2;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            
+            posArray[i] = r * Math.sin(phi) * Math.cos(theta);
+            posArray[i+1] = r * Math.sin(phi) * Math.sin(theta);
+            posArray[i+2] = r * Math.cos(phi);
+            
+            // Colors
+            colorArray[i] = 1;     // R
+            colorArray[i+1] = 0.4;  // G
+            colorArray[i+2] = 0.4;  // B
+        }
+
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colorArray, 3));
+
+        const particlesMaterial = new THREE.PointsMaterial({
+            size: 0.03,
+            vertexColors: true,
+            transparent: true,
+            blending: THREE.AdditiveBlending
+        });
+
+        const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+        scene.add(particlesMesh);
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0x404060);
+        scene.add(ambientLight);
+        
+        const light1 = new THREE.PointLight(0xff6b6b, 1, 10);
+        light1.position.set(2, 3, 4);
+        scene.add(light1);
+        
+        const light2 = new THREE.PointLight(0x4ecdc4, 1, 10);
+        light2.position.set(-3, -1, 2);
+        scene.add(light2);
+
+        camera.position.z = 6;
+
+        // Animation
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const time = Date.now() * 0.001;
+            
+            // Rotate shapes
+            shapes.forEach((shape, i) => {
+                shape.rotation.x += 0.005;
+                shape.rotation.y += 0.008;
+                shape.position.x += Math.sin(time + i) * 0.002;
+                shape.position.y += Math.cos(time + i) * 0.002;
+            });
+            
+            // Rotate particles
+            particlesMesh.rotation.y += 0.0005;
+            particlesMesh.rotation.x += 0.0003;
+            
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Handle resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
