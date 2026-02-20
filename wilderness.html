@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🏔️ WILDERNESS - 3D Survival</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Arial Black', sans-serif;
+        }
+        
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            text-shadow: 2px 2px 4px black;
+            z-index: 100;
+            background: rgba(0,0,0,0.7);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #ff6b6b;
+            backdrop-filter: blur(5px);
+            font-family: 'Courier New', monospace;
+        }
+        
+        #stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            z-index: 100;
+            background: rgba(0,0,0,0.7);
+            padding: 20px;
+            border-radius: 10px;
+            border-right: 5px solid #4ecdc4;
+            backdrop-filter: blur(5px);
+            font-family: 'Courier New', monospace;
+        }
+        
+        #inventory {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            z-index: 100;
+            background: rgba(0,0,0,0.7);
+            padding: 15px 30px;
+            border-radius: 50px;
+            border: 2px solid #ff6b6b;
+            backdrop-filter: blur(5px);
+            display: flex;
+            gap: 30px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .slot {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .slot .key {
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .slot .item {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        #time-display {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            z-index: 100;
+            background: rgba(0,0,0,0.7);
+            padding: 10px 20px;
+            border-radius: 20px;
+            border: 1px solid cyan;
+            font-family: 'Courier New', monospace;
+        }
+        
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 10px;
+            height: 10px;
+            border: 2px solid white;
+            border-radius: 50%;
+            z-index: 100;
+            pointer-events: none;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        
+        #message {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 24px;
+            text-shadow: 0 0 20px cyan;
+            z-index: 100;
+            background: rgba(0,0,0,0.5);
+            padding: 10px 20px;
+            border-radius: 10px;
+            border-left: 5px solid cyan;
+            transition: all 0.3s;
+            opacity: 0;
+        }
+        
+        #message.show {
+            opacity: 1;
+            bottom: 120px;
+        }
+    </style>
+</head>
+<body>
+    <div id="hud">
+        <div>❤️ HEALTH: <span id="health">100</span></div>
+        <div>⚡ ENERGY: <span id="energy">100</span></div>
+        <div>🍗 FOOD: <span id="food">80</span></div>
+        <div>💧 WATER: <span id="water">70</span></div>
+    </div>
+    
+    <div id="stats">
+        <div>🏹 KILLS: <span id="kills">0</span></div>
+        <div>🌲 WOOD: <span id="wood">0</span></div>
+        <div>🪨 STONE: <span id="stone">0</span></div>
+        <div>🔥 XP: <span id="xp">0</span></div>
+    </div>
+    
+    <div id="time-display">
+        🌞 MORNING
+    </div>
+    
+    <div id="inventory">
+        <div class="slot">
+            <span class="key">1</span>
+            <span class="item">🪓 AXE</span>
+        </div>
+        <div class="slot">
+            <span class="key">2</span>
+            <span class="item">🔪 KNIFE</span>
+        </div>
+        <div class="slot">
+            <span class="key">3</span>
+            <span class="item">🏹 BOW</span>
+        </div>
+        <div class="slot">
+            <span class="key">4</span>
+            <span class="item">🔥 FIRE</span>
+        </div>
+        <div class="slot">
+            <span class="key">5</span>
+            <span class="item">🏕️ TENT</span>
+        </div>
+    </div>
+    
+    <div id="crosshair"></div>
+    <div id="message">🔥 YOU LIT A FIRE</div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'https://unpkg.com/three@0.128.0/examples/jsm/controls/OrbitControls.js';
+        
+        // =============================================
+        // SETUP - Scene, Camera, Renderer
+        // =============================================
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB); // Sky blue
+        scene.fog = new THREE.Fog(0x87CEEB, 30, 100);
+        
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(10, 5, 10);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+        
+        // Controls
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2 - 0.1;
+        controls.minDistance = 5;
+        controls.maxDistance = 30;
+        
+        // =============================================
+        // LIGHTING
+        // =============================================
+        // Sun light
+        const sunLight = new THREE.DirectionalLight(0xfff5d1, 1.5);
+        sunLight.position.set(50, 50, 50);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        sunLight.shadow.camera.near = 0.5;
+        sunLight.shadow.camera.far = 150;
+        sunLight.shadow.camera.left = -50;
+        sunLight.shadow.camera.right = 50;
+        sunLight.shadow.camera.top = 50;
+        sunLight.shadow.camera.bottom = -50;
+        scene.add(sunLight);
+        
+        // Ambient light
+        const ambientLight = new THREE.AmbientLight(0x404060);
+        scene.add(ambientLight);
+        
+        // =============================================
+        // TERRAIN GENERATION
+        // =============================================
+        const terrainSize = 100;
+        const terrainSegments = 128;
+        
+        const terrainGeometry = new THREE.PlaneGeometry(terrainSize, terrainSize, terrainSegments, terrainSegments);
+        terrainGeometry.rotateX(-Math.PI / 2);
+        
+        // Create height map
+        const positionAttribute = terrainGeometry.attributes.position;
+        for (let i = 0; i < positionAttribute.count; i++) {
+            const x = positionAttribute.getX(i);
+            const z = positionAttribute.getZ(i);
+            
+            // Complex terrain generation using multiple noise layers
+            const y1 = Math.sin(x * 0.2) * Math.cos(z * 0.2) * 2;
+            const y2 = Math.sin(x * 0.5) * Math.cos(z * 0.5) * 1.5;
+            const y3 = Math.sin(x * 1.2) * Math.cos(z * 1.2) * 0.8;
+            const y4 = Math.random() * 0.5; // Small random variation
+            
+            const y = y1 + y2 + y3 + y4;
+            
+            positionAttribute.setY(i, y);
+        }
+        
+        terrainGeometry.computeVertexNormals();
+        
+        // Terrain material
+        const terrainMaterial = new THREE.MeshStandardMaterial({
+            color: 0x5a8c5a,
+            roughness: 0.8,
+            metalness: 0.1,
+            emissive: 0x000000,
+            flatShading: false
+        });
+        
+        const terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
+        terrain.receiveShadow = true;
+        terrain.castShadow = false;
+        terrain.position.y = -2;
+        scene.add(terrain);
+        
+        // Add water
+        const waterGeometry = new THREE.PlaneGeometry(terrainSize + 20, terrainSize + 20);
+        waterGeometry.rotateX(-Math.PI / 2);
+        const waterMaterial = new THREE.MeshStandardMaterial({
+            color: 0x2a6f8f,
+            transparent: true,
+            opacity: 0.6,
+            emissive: 0x0a1f2f,
+            roughness: 0.1,
+            metalness: 0.3
+        });
+        const water = new THREE.Mesh(waterGeometry, waterMaterial);
+        water.receiveShadow = false;
+        water.position.y = -1.5;
+        scene.add(water);
+        
+        // =============================================
+        // TREES (Procedural Generation)
+        // =============================================
+        const trees = [];
+        
+        function createTree(x, z) {
+            const group = new THREE.Group();
+            
+            // Get terrain height at this position
+            let y = 0;
+            const sampleX = x;
+            const sampleZ = z;
+            y = Math.sin(sampleX * 0.2) * Math.cos(sampleZ * 0.2) * 2 +
+                Math.sin(sampleX * 0.5) * Math.cos(sampleZ * 0.5) * 1.5 +
+                Math.sin(sampleX * 1.2) * Math.cos(sampleZ * 1.2) * 0.8 - 2;
+            
+            // Trunk
+            const trunkGeo = new THREE.CylinderGeometry(0.4, 0.6, 2);
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b });
+            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+            trunk.position.y = 1;
+            trunk.castShadow = true;
+            trunk.receiveShadow = true;
+            group.add(trunk);
+            
+            // Leaves (multiple layers)
+            const leafColor = 0x2a5a2a;
+            const leafMat = new THREE.MeshStandardMaterial({ color: leafColor, emissive: 0x0a2a0a });
+            
+            const leaf1 = new THREE.Mesh(new THREE.ConeGeometry(1, 1.5, 8), leafMat);
+            leaf1.position.y = 2;
+            leaf1.castShadow = true;
+            leaf1.receiveShadow = true;
+            group.add(leaf1);
+            
+            const leaf2 = new THREE.Mesh(new THREE.ConeGeometry(0.8, 1.2, 8), leafMat);
+            leaf2.position.y = 2.8;
+            leaf2.castShadow = true;
+            leaf2.receiveShadow = true;
+            group.add(leaf2);
+            
+            const leaf3 = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1, 8), leafMat);
+            leaf3.position.y = 3.4;
+            leaf3.castShadow = true;
+            leaf3.receiveShadow = true;
+            group.add(leaf3);
+            
+            group.position.set(x, y + 1, z);
+            
+            return group;
+        }
+        
+        // Generate forest
+        for (let i = 0; i < 200; i++) {
+            const x = (Math.random() - 0.5) * 80;
+            const z = (Math.random() - 0.5) * 80;
+            
+            // Don't place trees too close to center
+            if (Math.sqrt(x*x + z*z) < 10) continue;
+            
+            const tree = createTree(x, z);
+            scene.add(tree);
+            trees.push(tree);
+        }
+        
+        // =============================================
+        // ROCKS
+        // =============================================
+        const rocks = [];
+        
+        function createRock(x, z) {
+            const group = new THREE.Group();
+            
+            let y = 0;
+            const sampleX = x;
+            const sampleZ = z;
+            y = Math.sin(sampleX * 0.2) * Math.cos(sampleZ * 0.2) * 2 +
+                Math.sin(sampleX * 0.5) * Math.cos(sampleZ * 0.5) * 1.5 +
+                Math.sin(sampleX * 1.2) * Math.cos(sampleZ * 1.2) * 0.8 - 2;
+            
+            const rockGeo = new THREE.DodecahedronGeometry(0.5);
+            const rockMat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.9 });
+            const rock = new THREE.Mesh(rockGeo, rockMat);
+            rock.position.y = 0.3;
+            rock.castShadow = true;
+            rock.receiveShadow = true;
+            rock.scale.set(1, 0.5 + Math.random() * 0.5, 1);
+            group.add(rock);
+            
+            group.position.set(x, y + 0.3, z);
+            
+            return group;
+        }
+        
+        for (let i = 0; i < 100; i++) {
+            const x = (Math.random() - 0.5) * 80;
+            const z = (Math.random() - 0.5) * 80;
+            
+            if (Math.sqrt(x*x + z*z) < 8) continue;
+            
+            const rock = createRock(x, z);
+            scene.add(rock);
+            rocks.push(rock);
+        }
+        
+        // =============================================
+        // ANIMALS (Simple cubes for now - upgrade later)
+        // =============================================
+        const animals = [];
+        
+        function createAnimal(type, x, z) {
+            const group = new THREE.Group();
+            
+            let y = 0;
+            const sampleX = x;
+            const sampleZ = z;
+            y = Math.sin(sampleX * 0.2) * Math.cos(sampleZ * 0.2) * 2 +
+                Math.sin(sampleX * 0.5) * Math.cos(sampleZ * 0.5) * 1.5 +
+                Math.sin(sampleX * 1.2) * Math.cos(sampleZ * 1.2) * 0.8 - 2;
+            
+            let color, size;
+            if (type === 'deer') {
+                color = 0xcc8866;
+                size = 0.6;
+            } else if (type === 'wolf') {
+                color = 0x886666;
+                size = 0.5;
+            } else {
+                color = 0xaa88aa;
+                size = 0.4;
+            }
+            
+            const bodyGeo = new THREE.BoxGeometry(size, size/2, size*1.5);
+            const bodyMat = new THREE.MeshStandardMaterial({ color });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = size/2;
+            body.castShadow = true;
+            body.receiveShadow = true;
+            group.add(body);
+            
+            const headGeo = new THREE.SphereGeometry(size/2);
+            const head = new THREE.Mesh(headGeo, bodyMat);
+            head.position.y = size;
+            head.position.z = size*0.8;
+            head.castShadow = true;
+            head.receiveShadow = true;
+            group.add(head);
+            
+            group.position.set(x, y + size/2, z);
+            
+            return group;
+        }
+        
+        for (let i = 0; i < 20; i++) {
+            const x = (Math.random() - 0.5) * 60;
+            const z = (Math.random() - 0.5) * 60;
+            
+            if (Math.sqrt(x*x + z*z) < 15) continue;
+            
+            const type = Math.random() > 0.5 ? 'deer' : 'wolf';
+            const animal = createAnimal(type, x, z);
+            scene.add(animal);
+            animals.push(animal);
+        }
+        
+        // =============================================
+        // CAMP (Player Base)
+        // =============================================
+        const campGroup = new THREE.Group();
+        
+        // Tent
+        const tentGeo = new THREE.ConeGeometry(2, 1.5, 4);
+        const tentMat = new THREE.MeshStandardMaterial({ color: 0xaa6644 });
+        const tent = new THREE.Mesh(tentGeo, tentMat);
+        tent.position.y = 0.75;
+        tent.castShadow = true;
+        tent.receiveShadow = true;
+        campGroup.add(tent);
+        
+        // Fire pit
+        const fireRingGeo = new THREE.TorusGeometry(0.8, 0.1, 16, 32);
+        const fireRingMat = new THREE.MeshStandardMaterial({ color: 0x886644 });
+        const fireRing = new THREE.Mesh(fireRingGeo, fireRingMat);
+        fireRing.rotation.x = Math.PI / 2;
+        fireRing.position.y = 0.05;
+        fireRing.position.z = -1.5;
+        campGroup.add(fireRing);
+        
+        // Fire wood
+        for (let i = 0; i < 3; i++) {
+            const woodGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.5);
+            const woodMat = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+            const wood = new THREE.Mesh(woodGeo, woodMat);
+            wood.position.y = 0.25;
+            wood.position.z = -1.5;
+            wood.position.x = (i - 1) * 0.3;
+            wood.rotation.z = Math.PI / 4;
+            campGroup.add(wood);
+        }
+        
+        // Fire particles
+        const fireParticles = [];
+        for (let i = 0; i < 10; i++) {
+            const particleGeo = new THREE.SphereGeometry(0.1);
+            const particleMat = new THREE.MeshStandardMaterial({ color: 0xff6600, emissive: 0x442200 });
+            const particle = new THREE.Mesh(particleGeo, particleMat);
+            particle.position.y = 0.5;
+            particle.position.z = -1.5;
+            particle.position.x = (i - 5) * 0.2;
+            campGroup.add(particle);
+            fireParticles.push(particle);
+        }
+        
+        campGroup.position.set(0, 0, 0);
+        scene.add(campGroup);
+        
+        // =============================================
+        // GAME STATE
+        // =============================================
+        const gameState = {
+            health: 100,
+            energy: 100,
+            food: 80,
+            water: 70,
+            kills: 0,
+            wood: 5,
+            stone: 3,
+            xp: 0,
+            time: 0, // 0-24 hour cycle
+            selectedItem: 1,
+            messages: []
+        };
+        
+        // =============================================
+        // DAY/NIGHT CYCLE
+        // =============================================
+        function updateTime() {
+            gameState.time += 0.001;
+            if (gameState.time > 24) gameState.time = 0;
+            
+            // Update sun position
+            const sunAngle = (gameState.time / 24) * Math.PI * 2;
+            const sunHeight = Math.sin(sunAngle);
+            const sunDistance = 100;
+            
+            sunLight.position.x = Math.cos(sunAngle) * sunDistance;
+            sunLight.position.y = Math.max(5, sunHeight * sunDistance);
+            sunLight.position.z = Math.sin(sunAngle) * sunDistance;
+            
+            // Update ambient light
+            const ambientIntensity = Math.max(0.2, Math.min(0.6, sunHeight * 0.5 + 0.3));
+            ambientLight.intensity = ambientIntensity;
+            
+            // Update sky color
+            if (sunHeight > 0.3) {
+                scene.background.setHex(0x87CEEB); // Day
+                document.getElementById('time-display').innerHTML = '🌞 DAY';
+            } else if (sunHeight > -0.3) {
+                scene.background.setHex(0x334466); // Dusk/Dawn
+                document.getElementById('time-display').innerHTML = '🌅 DUSK';
+            } else {
+                scene.background.setHex(0x111122); // Night
+                document.getElementById('time-display').innerHTML = '🌙 NIGHT';
+            }
+        }
+        
+        // =============================================
+        // FIRE ANIMATION
+        // =============================================
+        function animateFire() {
+            fireParticles.forEach((particle, i) => {
+                particle.position.y += 0.01 + Math.random() * 0.02;
+                particle.position.x += (Math.random() - 0.5) * 0.02;
+                particle.position.z += (Math.random() - 0.5) * 0.02;
+                
+                if (particle.position.y > 1.5) {
+                    particle.position.y = 0.5;
+                }
+            });
+        }
+        
+        // =============================================
+        // SHOW MESSAGE
+        // =============================================
+        function showMessage(text) {
+            const msgEl = document.getElementById('message');
+            msgEl.textContent = text;
+            msgEl.classList.add('show');
+            
+            setTimeout(() => {
+                msgEl.classList.remove('show');
+            }, 2000);
+        }
+        
+        // =============================================
+        // KEYBOARD CONTROLS
+        // =============================================
+        window.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                    gameState.selectedItem = parseInt(e.key);
+                    showMessage(`SELECTED: ${document.querySelectorAll('.slot')[gameState.selectedItem-1].querySelector('.item').textContent}`);
+                    break;
+                    
+                case 'e': // Interact
+                    showMessage('🔍 SEARCHING...');
+                    break;
+                    
+                case 'f': // Build fire
+                    if (gameState.wood >= 2) {
+                        gameState.wood -= 2;
+                        showMessage('🔥 FIRE STARTED');
+                        document.getElementById('wood').textContent = gameState.wood;
+                    } else {
+                        showMessage('❌ NEED MORE WOOD');
+                    }
+                    break;
+            }
+        });
+        
+        // =============================================
+        // ANIMATION LOOP
+        // =============================================
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Update game systems
+            updateTime();
+            animateFire();
+            
+            // Update HUD
+            document.getElementById('health').textContent = gameState.health;
+            document.getElementById('energy').textContent = gameState.energy;
+            document.getElementById('food').textContent = gameState.food;
+            document.getElementById('water').textContent = gameState.water;
+            document.getElementById('kills').textContent = gameState.kills;
+            document.getElementById('wood').textContent = gameState.wood;
+            document.getElementById('stone').textContent = gameState.stone;
+            document.getElementById('xp').textContent = gameState.xp;
+            
+            // Animate animals (simple bobbing)
+            animals.forEach(animal => {
+                animal.rotation.y += 0.01;
+                animal.position.y += Math.sin(Date.now() * 0.002) * 0.002;
+            });
+            
+            // Animate trees (wind effect)
+            trees.forEach(tree => {
+                tree.rotation.z = Math.sin(Date.now() * 0.001 + tree.position.x) * 0.01;
+            });
+            
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        animate();
+        
+        // Handle resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        console.log('%c🌲 WILDERNESS SURVIVAL LOADED 🌲', 'color: green; font-size: 24px; font-weight: bold;');
+        console.log('Use WASD to move | 1-5 to select items | E to interact | F to build fire');
+    </script>
+</body>
+</html>
