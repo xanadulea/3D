@@ -81,6 +81,31 @@
         const colors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0x96ceb4, 0xffcc5c];
         
         for (let i = 0; i < 30; i++) {
+
+            // Add a centerpiece - a glowing torus (donut)
+const torusGeometry = new THREE.TorusGeometry(0.5, 0.15, 16, 100);
+const torusMaterial = new THREE.MeshStandardMaterial({
+    color: 0xff6b6b,
+    emissive: 0x442222,
+    roughness: 0.2,
+    metalness: 0.3
+});
+const torus = new THREE.Mesh(torusGeometry, torusMaterial);
+torus.position.set(0, 0, 0);
+scene.add(torus);
+shapes.push(torus);
+
+// Add a smaller ring inside
+const ringGeometry = new THREE.TorusGeometry(0.3, 0.05, 16, 100);
+const ringMaterial = new THREE.MeshStandardMaterial({
+    color: 0x4ecdc4,
+    emissive: 0x224444
+});
+const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+ring.rotation.x = Math.PI / 2;
+ring.rotation.z = Math.PI / 4;
+scene.add(ring);
+shapes.push(ring);
             // Random shape (cube or sphere)
             let geometry;
             if (Math.random() > 0.5) {
