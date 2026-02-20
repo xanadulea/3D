@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PONG - 2D Game</title>
+    <style>
+        body { margin: 0; background: black; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        canvas { border: 2px solid cyan; background: #111; }
+        #score { position: absolute; top: 20px; color: cyan; font-family: monospace; font-size: 24px; }
+    </style>
+</head>
+<body>
+    <div id="score">0 : 0</div>
+    <canvas id="game" width="800" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        
+        // Game objects
+        let ball = { x: 400, y: 200, radius: 5, speedX: 3, speedY: 3 };
+        let paddle1 = { x: 30, y: 150, width: 10, height: 80, score: 0 };
+        let paddle2 = { x: 760, y: 150, width: 10, height: 80, score: 0 };
+        
+        // Mouse control
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            paddle1.y = e.clientY - rect.top - paddle1.height/2;
+        });
+        
+        // AI for second paddle
+        function moveAI() {
+            paddle2.y += (ball.y - (paddle2.y + paddle2.height/2)) * 0.1;
+        }
+        
+        // Update game
+        function update() {
+            // Move ball
+            ball.x += ball.speedX;
+            ball.y += ball.speedY;
+            
+            // Wall collisions (top/bottom)
+            if (ball.y < 0 || ball.y > 400) {
+                ball.speedY *= -1;
+            }
+            
+            // Paddle collisions
+            if (ball.x - ball.radius < paddle1.x + paddle1.width && 
+                ball.x + ball.radius > paddle1.x &&
+                ball.y > paddle1.y && 
+                ball.y < paddle1.y + paddle1.height) {
+                ball.speedX *= -1;
+                ball.speedX *= 1.1; // Speed up!
+            }
+            
+            if (ball.x + ball.radius > paddle2.x && 
+                ball.x - ball.radius < paddle2.x + paddle2.width &&
+                ball.y > paddle2.y && 
+                ball.y < paddle2.y + paddle2.height) {
+                ball.speedX *= -1;
+                ball.speedX *= 1.1; // Speed up!
+            }
+            
+            // Score points
+            if (ball.x < 0) {
+                paddle2.score++;
+                resetBall();
+            }
+            if (ball.x > 800) {
+                paddle1.score++;
+                resetBall();
+            }
+            
+            moveAI();
+        }
+        
+        function resetBall() {
+            ball.x = 400;
+            ball.y = 200;
+            ball.speedX = 3 * (Math.random() > 0.5 ? 1 : -1);
+            ball.speedY = 3 * (Math.random() > 0.5 ? 1 : -1);
+        }
+        
+        // Draw everything
+        function draw() {
+            // Clear screen
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, 800, 400);
+            
+            // Draw center line
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([10, 10]);
+            ctx.beginPath();
+            ctx.moveTo(400, 0);
+            ctx.lineTo(400, 400);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Draw ball
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'cyan';
+            ctx.fill();
+            
+            // Draw paddles
+            ctx.fillStyle = 'white';
+            ctx.fillRect(paddle1.x, paddle1.y, paddle1.width, paddle1.height);
+            ctx.fillRect(paddle2.x, paddle2.y, paddle2.width, paddle2.height);
+            
+            // Update score display
+            document.getElementById('score').innerHTML = `${paddle1.score} : ${paddle2.score}`;
+        }
+        
+        // Game loop
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        gameLoop();
+    </script>
+</body>
+</html>
